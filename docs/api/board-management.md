@@ -39,13 +39,6 @@ Creates a new retrospective board and assigns the creator as an admin user.
 ### Technical Implementation Details
 
 #### Controller Layer
-java
-@RestController
-@RequestMapping("/api/boards")
-public class BoardController {
-@PostMapping
-@Operation(summary = "Create a new board")
-public ResponseEntity<Board> createBoard(...)
 
 **Key Annotations:**
 - `@RestController`: [Documentation](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-restcontroller.html)
@@ -59,12 +52,6 @@ public ResponseEntity<Board> createBoard(...)
   - Describes endpoint purpose and parameters
 
 #### Service Layer
-java
-@Service
-@Transactional
-public class BoardService {
-public Board createBoard(String name, String creatorName)
-
 
 **Key Annotations:**
 - `@Service`: [Documentation](https://docs.spring.io/spring-framework/reference/core/beans/stereotype-annotations.html)
@@ -113,18 +100,6 @@ Allows a user to join an existing board as a regular user (non-admin).
 ### Technical Implementation Details
 
 #### Entity Relationships
-
-java
-@Entity
-public class BoardUser {
-@ManyToOne
-@JoinColumn(name = "board_id")
-private Board board;
-@ManyToOne
-@JoinColumn(name = "user_id")
-private User user;
-}
-
 
 **Key Annotations:**
 - `@Entity`: [Documentation](https://jakarta.ee/specifications/persistence/3.0/apidocs/jakarta.persistence/jakarta/persistence/entity)
