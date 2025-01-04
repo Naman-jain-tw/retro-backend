@@ -45,3 +45,10 @@ For detailed API documentation, see [Board Management API Documentation](docs/ap
 ```
 ./gradlew test
 ```
+
+## Misc
+
+### Hexagonal Architecture Refernce/Resources
+- [Youtube](https://www.youtube.com/watch?v=SO9bHRL3Fic)
+- [Article](https://betterprogramming.pub/hexagonal-architecture-with-spring-boot-74e93030eba3)
+- [Github Sample](https://github.com/rbailen/Hexagonal-Architecture) 
