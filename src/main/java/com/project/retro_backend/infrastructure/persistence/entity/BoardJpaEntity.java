@@ -1,19 +1,15 @@
-package com.project.retro_backend.domain;
+package com.project.retro_backend.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.Set;
-import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "boards")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class Board {
+public class BoardJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,9 +23,8 @@ public class Board {
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
-    @JsonManagedReference
     @OneToMany(mappedBy = "board", cascade = CascadeType.ALL)
-    private Set<BoardUser> boardUsers;
+    private Set<BoardUserJpaEntity> boardUsers;
     
     @PrePersist
     protected void onCreate() {
@@ -38,4 +33,4 @@ public class Board {
             publicId = UUID.randomUUID();
         }
     }
-}
+} 

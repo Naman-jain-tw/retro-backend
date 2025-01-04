@@ -1,14 +1,15 @@
-package com.project.retro_backend.service;
+package com.project.retro_backend.application.service;
 
-import com.project.retro_backend.domain.*;
-import com.project.retro_backend.repository.*;
+import com.project.retro_backend.application.port.output.*;
+import com.project.retro_backend.domain.model.*;
+import com.project.retro_backend.domain.exception.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,34 +23,39 @@ class BoardServiceTest {
 
     @Mock
     private BoardRepository boardRepository;
-
     @Mock
     private UserRepository userRepository;
-
     @Mock
     private BoardUserRepository boardUserRepository;
 
-    @InjectMocks
     private BoardService boardService;
-
     private Board testBoard;
     private User testUser;
     private BoardUser testBoardUser;
 
     @BeforeEach
     void setUp() {
+        boardService = new BoardService(boardRepository, userRepository, boardUserRepository);
+        
         testBoard = new Board();
-        testBoard.setName("Test Board");
+        testBoard.setId(1L);
         testBoard.setPublicId(UUID.randomUUID());
+        testBoard.setName("Test Board");
+        testBoard.setCreatedAt(LocalDateTime.now());
 
         testUser = new User();
-        testUser.setName("Test User");
+        testUser.setId(1L);
         testUser.setPublicId(UUID.randomUUID());
+        testUser.setName("Test User");
+        testUser.setCreatedAt(LocalDateTime.now());
 
         testBoardUser = new BoardUser();
+        testBoardUser.setId(1L);
         testBoardUser.setBoard(testBoard);
         testBoardUser.setUser(testUser);
         testBoardUser.setRole(UserRole.ADMIN);
+        testBoardUser.setStatus(BoardUserStatus.ACTIVE);
+        testBoardUser.setLastActiveAt(LocalDateTime.now());
     }
 
     @Test
@@ -70,14 +76,11 @@ class BoardServiceTest {
     @Test
     void joinBoard_ShouldAddUserToExistingBoard() {
         // Arrange
-        BoardUser joinBoardUser = new BoardUser();
-        joinBoardUser.setBoard(testBoard);
-        joinBoardUser.setUser(testUser);
-        joinBoardUser.setRole(UserRole.USER);
-
         when(boardRepository.findByPublicId(any(UUID.class))).thenReturn(Optional.of(testBoard));
         when(userRepository.save(any(User.class))).thenReturn(testUser);
-        when(boardUserRepository.save(any(BoardUser.class))).thenReturn(joinBoardUser);
+        when(boardUserRepository.save(any(BoardUser.class))).thenReturn(testBoardUser);
+        when(boardUserRepository.findByBoardPublicIdAndUserName(any(UUID.class), any(String.class)))
+            .thenReturn(Optional.empty());
 
         // Act
         BoardUser result = boardService.joinBoard(UUID.randomUUID(), "Test User");
@@ -85,7 +88,23 @@ class BoardServiceTest {
         // Assert
         assertThat(result).isNotNull();
         assertThat(result.getUser().getName()).isEqualTo("Test User");
-        assertThat(result.getRole()).isEqualTo(UserRole.USER);
+        assertThat(result.getStatus()).isEqualTo(BoardUserStatus.ACTIVE);
+    }
+
+    @Test
+    void joinBoard_ShouldReactivateUser_WhenUserRejoins() {
+        // Arrange
+        testBoardUser.setStatus(BoardUserStatus.INACTIVE);
+        when(boardUserRepository.findByBoardPublicIdAndUserName(any(UUID.class), any(String.class)))
+            .thenReturn(Optional.of(testBoardUser));
+        when(boardUserRepository.save(any(BoardUser.class))).thenReturn(testBoardUser);
+
+        // Act
+        BoardUser result = boardService.joinBoard(UUID.randomUUID(), "Test User");
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo(BoardUserStatus.ACTIVE);
     }
 
     @Test
@@ -93,10 +112,28 @@ class BoardServiceTest {
         // Arrange
         UUID nonExistentBoardId = UUID.randomUUID();
         when(boardRepository.findByPublicId(nonExistentBoardId)).thenReturn(Optional.empty());
+        when(boardUserRepository.findByBoardPublicIdAndUserName(any(UUID.class), any(String.class)))
+            .thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(RuntimeException.class, () -> 
+        assertThrows(BoardNotFoundException.class, () -> 
             boardService.joinBoard(nonExistentBoardId, "Test User")
         );
+    }
+
+    @Test
+    void handleUserDisconnection_ShouldUpdateUserStatus() {
+        // Arrange
+        UUID boardId = UUID.randomUUID();
+        String userName = "Test User";
+        when(boardUserRepository.findByBoardPublicIdAndUserName(boardId, userName))
+            .thenReturn(Optional.of(testBoardUser));
+        when(boardUserRepository.save(any(BoardUser.class))).thenReturn(testBoardUser);
+
+        // Act
+        boardService.handleUserDisconnection(boardId, userName);
+
+        // Assert
+        assertThat(testBoardUser.getStatus()).isEqualTo(BoardUserStatus.INACTIVE);
     }
 } 

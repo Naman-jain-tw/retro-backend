@@ -3,6 +3,7 @@
 ## Table of Contents
 - [Create Board](#create-board)
 - [Join Board](#join-board)
+- [WebSocket](#websocket-communication) 
 
 ## Create Board
 
@@ -111,3 +112,29 @@ Allows a user to join an existing board as a regular user (non-admin).
   - Defines many-to-one relationship
   - Multiple users can join one board
   - JPA relationship mapping
+
+## WebSocket Communication
+ 
+### Connection Details
+Endpoint: `/ws` (using SockJS)
+ 
+### Topics
+- `/topic/board/{boardId}` - Receive board updates
+- `/app/board/{boardId}/card` - Send card updates
+ 
+### User Status Tracking
+The system automatically tracks user connection status:
+- Connection established: User status set to ACTIVE
+- Connection lost: User status set to INACTIVE
+ 
+### Technical Implementation Details
+ 
+#### WebSocket Configuration
+- Uses Spring's STOMP messaging protocol
+- SockJS fallback for browsers not supporting WebSocket 
+- Message broker configured for pub/sub communication
+ 
+#### Connection Management
+- Automatic session tracking
+- Status updates on connection/disconnection events
+- Heartbeat mechanism for connection health monitoring

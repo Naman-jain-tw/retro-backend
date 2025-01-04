@@ -1,31 +1,27 @@
-package com.project.retro_backend.domain;
+package com.project.retro_backend.infrastructure.persistence.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import java.time.LocalDateTime;
+
+import com.project.retro_backend.domain.model.UserRole;
+import com.project.retro_backend.domain.model.BoardUserStatus;
 
 @Entity
 @Table(name = "board_users")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class BoardUser {
+public class BoardUserJpaEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "board_id", nullable = false)
-    private Board board;
+    private BoardJpaEntity board;
     
-    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private UserJpaEntity user;
     
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,6 +29,13 @@ public class BoardUser {
     
     @Column(nullable = false)
     private LocalDateTime joinedAt;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private BoardUserStatus status;
+    
+    @Column(name = "last_active_at")
+    private LocalDateTime lastActiveAt;
     
     @PrePersist
     protected void onCreate() {
