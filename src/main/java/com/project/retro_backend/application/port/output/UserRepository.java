@@ -7,5 +7,6 @@ import com.project.retro_backend.domain.model.User;
 
 public interface UserRepository {
     User save(User user);
+
     Optional<User> findByPublicId(UUID publicId);
-} 
+}

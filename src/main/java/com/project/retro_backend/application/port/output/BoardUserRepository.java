@@ -6,5 +6,6 @@ import java.util.UUID;
 
 public interface BoardUserRepository {
     BoardUser save(BoardUser boardUser);
+
     Optional<BoardUser> findByBoardPublicIdAndUserName(UUID boardId, String userName);
-} 
+}

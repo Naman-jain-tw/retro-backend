@@ -1,13 +1,11 @@
 package com.project.retro_backend.infrastructure.adapter.input.rest;
 
-import com.project.retro_backend.application.port.input.CreateBoardUseCase;
-import com.project.retro_backend.application.port.input.JoinBoardUseCase;
+import com.project.retro_backend.application.service.BoardService;
 import com.project.retro_backend.domain.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -16,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -29,10 +28,7 @@ class BoardControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private CreateBoardUseCase createBoardUseCase;
-
-    @MockitoBean
-    private JoinBoardUseCase joinBoardUseCase;
+    private BoardService boardService;
 
     private Board testBoard;
     private BoardUser testBoardUser;
@@ -63,7 +59,7 @@ class BoardControllerTest {
     @Test
     void createBoard_ShouldReturnCreatedBoard() throws Exception {
         // Arrange
-        when(createBoardUseCase.createBoard(anyString(), anyString())).thenReturn(testBoard);
+        when(boardService.createBoard(anyString(), anyString())).thenReturn(testBoard);
 
         // Act & Assert
         mockMvc.perform(post("/api/boards")
@@ -79,16 +75,23 @@ class BoardControllerTest {
     void joinBoard_ShouldReturnBoardUser() throws Exception {
         // Arrange
         UUID testBoardId = UUID.randomUUID();
-        when(joinBoardUseCase.joinBoard(eq(testBoardId), anyString())).thenReturn(testBoardUser);
+        UserToken mockToken = new UserToken();
+        mockToken.setToken("sample-token");
+        when(boardService.joinBoard(eq(testBoardId), anyString())).thenReturn(testBoardUser);
+        when(boardService.generateUserToken(any(User.class), any(Board.class))).thenReturn(mockToken);
 
         // Act & Assert
         mockMvc.perform(post("/api/boards/{boardId}/join", testBoardId)
                 .param("userName", "Test User")
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.userPublicId").value(testBoardUser.getUser().getPublicId().toString()))
-                .andExpect(jsonPath("$.userName").value("Test User"))
-                .andExpect(jsonPath("$.role").value("USER"))
-                .andExpect(jsonPath("$.status").value("ACTIVE"));
+                .andExpect(jsonPath("$.boardUser.user.publicId").value(testBoardUser.getUser().getPublicId().toString()))
+                .andExpect(jsonPath("$.boardUser.user.name").value("Test User"))
+                .andExpect(jsonPath("$.boardUser.role").value("USER"))
+                .andExpect(jsonPath("$.boardUser.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.token").value("sample-token"))
+                .andExpect(jsonPath("$.wsEndpoint").value("/ws"))
+                .andExpect(jsonPath("$.boardTopic").value("/topic/board/" + testBoardId))
+                .andExpect(jsonPath("$.joinEndpoint").value("/app/board/" + testBoardId + "/join"));
     }
-} 
+}

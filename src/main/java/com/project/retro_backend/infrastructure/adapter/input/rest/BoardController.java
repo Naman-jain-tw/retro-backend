@@ -2,8 +2,10 @@ package com.project.retro_backend.infrastructure.adapter.input.rest;
 
 import com.project.retro_backend.application.port.input.CreateBoardUseCase;
 import com.project.retro_backend.application.port.input.JoinBoardUseCase;
+import com.project.retro_backend.application.service.BoardService;
 import com.project.retro_backend.domain.model.Board;
 import com.project.retro_backend.domain.model.BoardUser;
+import com.project.retro_backend.domain.model.UserToken;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.CreateBoardResponse;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.JoinBoardResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -23,6 +27,7 @@ import java.util.UUID;
 public class BoardController {
     private final CreateBoardUseCase createBoardUseCase;
     private final JoinBoardUseCase joinBoardUseCase;
+    private final BoardService boardService;
 
     @PostMapping
     @Operation(summary = "Create a new board",
@@ -46,17 +51,18 @@ public class BoardController {
                     "their status will be updated to ACTIVE")
     @ApiResponse(responseCode = "200", description = "Successfully joined the board")
     @ApiResponse(responseCode = "404", description = "Board not found")
-    public ResponseEntity<JoinBoardResponse> joinBoard(
+    public ResponseEntity<Map<String, Object>> joinBoard(
             @Parameter(description = "ID of the board to join") @PathVariable("boardId") UUID boardId,
             @Parameter(description = "Name of the user joining") @RequestParam("userName") String userName) {
-        BoardUser boardUser = joinBoardUseCase.joinBoard(boardId, userName);
+        BoardUser boardUser = boardService.joinBoard(boardId, userName);
+        UserToken userToken = boardService.generateUserToken(boardUser.getUser(), boardUser.getBoard());
         
-        JoinBoardResponse response = new JoinBoardResponse();
-        response.setUserPublicId(boardUser.getUser().getPublicId());
-        response.setUserName(boardUser.getUser().getName());
-        response.setRole(boardUser.getRole());
-        response.setStatus(boardUser.getStatus());
-        response.setLastActiveAt(boardUser.getLastActiveAt());
+        Map<String, Object> response = new HashMap<>();
+        response.put("boardUser", boardUser);
+        response.put("token", userToken.getToken());
+        response.put("wsEndpoint", "/ws");
+        response.put("boardTopic", "/topic/board/" + boardId);
+        response.put("joinEndpoint", "/app/board/" + boardId + "/join");
         
         return ResponseEntity.ok(response);
     }
