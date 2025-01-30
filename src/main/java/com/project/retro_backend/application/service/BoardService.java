@@ -43,11 +43,11 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
         User admin = new User();
         admin.setName(creatorName);
         admin = userRepository.save(admin);
-        
+
         Board board = new Board();
         board.setName(name);
         board = boardRepository.save(board);
-        
+
         BoardUser boardUser = new BoardUser();
         boardUser.setBoard(board);
         boardUser.setUser(admin);
@@ -55,7 +55,7 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
         boardUser.setStatus(BoardUserStatus.ACTIVE);
         boardUser.setLastActiveAt(LocalDateTime.now());
         boardUserRepository.save(boardUser);
-        
+
         return board;
     }
 
@@ -63,11 +63,11 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
     @Transactional
     public BoardUser joinBoard(UUID boardId, String userName) {
         Board board = boardRepository.findByPublicId(boardId)
-            .orElseThrow(() -> new BoardNotFoundException("Board not found"));
+                .orElseThrow(() -> new BoardNotFoundException("Board not found"));
 
         // Check if user already joined
         Optional<BoardUser> existingBoardUser = boardUserRepository.findByBoardPublicIdAndUserName(boardId, userName);
-        
+
         BoardUser boardUser;
         if (existingBoardUser.isPresent()) {
             // User is rejoining - update their status
@@ -80,7 +80,7 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
             User user = new User();
             user.setName(userName);
             user = userRepository.save(user);
-            
+
             boardUser = new BoardUser();
             boardUser.setBoard(board);
             boardUser.setUser(user);
@@ -92,21 +92,21 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
 
         // Generate and save token
         UserToken userToken = generateUserToken(boardUser.getUser(), board);
-        
+
         // Track active user
         activeBoardUsers.computeIfAbsent(boardId, k -> ConcurrentHashMap.newKeySet())
-                       .add(userName);
-        
+                .add(userName);
+
         return boardUser;
     }
 
     public UserToken generateUserToken(User user, Board board) {
         // Deactivate any existing active tokens for this user and board
         userTokenRepository.findByUserIdAndBoardIdAndActiveTrue(user.getId(), board.getId())
-            .ifPresent(existingToken -> {
-                existingToken.setActive(false);
-                userTokenRepository.save(existingToken);
-            });
+                .ifPresent(existingToken -> {
+                    existingToken.setActive(false);
+                    userTokenRepository.save(existingToken);
+                });
 
         // Create new token
         UserToken token = new UserToken();
@@ -123,23 +123,21 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
     // Add method to validate token
     public boolean validateToken(String token, UUID boardId) {
         return userTokenRepository.findByToken(token)
-            .map(userToken -> 
-                userToken.isActive() &&
-                userToken.getBoard().getPublicId().equals(boardId) &&
-                userToken.getExpiresAt().isAfter(LocalDateTime.now())
-            )
-            .orElse(false);
+                .map(userToken -> userToken.isActive() &&
+                        userToken.getBoard().getPublicId().equals(boardId) &&
+                        userToken.getExpiresAt().isAfter(LocalDateTime.now()))
+                .orElse(false);
     }
 
     // Add method to handle user disconnection
     @Transactional
     public void handleUserDisconnection(UUID boardId, String userName) {
         boardUserRepository.findByBoardPublicIdAndUserName(boardId, userName)
-            .ifPresent(boardUser -> {
-                boardUser.setStatus(BoardUserStatus.INACTIVE);
-                boardUser.setLastActiveAt(LocalDateTime.now());
-                boardUserRepository.save(boardUser);
-            });
+                .ifPresent(boardUser -> {
+                    boardUser.setStatus(BoardUserStatus.INACTIVE);
+                    boardUser.setLastActiveAt(LocalDateTime.now());
+                    boardUserRepository.save(boardUser);
+                });
 
         // Remove user from active users
         activeBoardUsers.computeIfPresent(boardId, (k, users) -> {
@@ -151,4 +149,4 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
     public Set<String> getActiveBoardUsers(UUID boardId) {
         return activeBoardUsers.getOrDefault(boardId, Collections.emptySet());
     }
-} 
+}

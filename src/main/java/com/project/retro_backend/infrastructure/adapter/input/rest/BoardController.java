@@ -60,7 +60,7 @@ public class BoardController {
         Map<String, Object> response = new HashMap<>();
         response.put("boardUser", boardUser);
         response.put("token", userToken.getToken());
-        response.put("wsEndpoint", "/ws");
+        response.put("wsEndpoint", "/websocket");
         response.put("boardTopic", "/topic/board/" + boardId);
         response.put("joinEndpoint", "/app/board/" + boardId + "/join");
         
