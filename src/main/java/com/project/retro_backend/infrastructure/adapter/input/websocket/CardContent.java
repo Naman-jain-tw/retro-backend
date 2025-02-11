@@ -7,6 +7,10 @@ public class CardContent {
         // Default constructor is required for Jackson deserialization
     }
 
+    public CardContent(String cardContent) {
+        this.cardContent = cardContent;
+    }
+
     public String getCardContent() {
         return cardContent;
     }

@@ -100,6 +100,8 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
         return boardUser;
     }
 
+    @Override
+    @Transactional
     public UserToken generateUserToken(User user, Board board) {
         // Deactivate any existing active tokens for this user and board
         userTokenRepository.findByUserIdAndBoardIdAndActiveTrue(user.getId(), board.getId())
