@@ -37,3 +37,27 @@ out/
 .vscode/
 .DS_Store
 */.DS_Store
+
+# Ignore local Terraform directories (downloaded plugins, modules, etc.)
+**/.terraform/*
+
+# Terraform state files (local state data and backups)
+*.tfstate
+*.tfstate.*
+
+# Crash log files (generated when Terraform crashes)
+crash.log
+
+# Terraform override files (local configuration overrides)
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform plan files (binary plan outputs)
+*.tfplan
+
+# Sensitive variable definition files (if you don't want to commit secrets)
+terraform.tfvars
+terraform.tfvars.json
+
