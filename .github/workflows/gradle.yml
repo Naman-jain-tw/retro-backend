@@ -9,7 +9,6 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
-    # Map GitHub repository variables into the job environment.
     env:
       PROJECT_ID: ${{ vars.PROJECT_ID }}
       REGION: ${{ vars.REGION }}
@@ -17,29 +16,32 @@ jobs:
       IMAGE_NAME: ${{ vars.IMAGE_NAME }}
 
     steps:
-      # Step 1: Check out the repository code.
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up the Google Cloud SDK using the service account key.
+      # Authenticate with Google Cloud
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCLOUD_SERVICE_KEY }}
+
+      # Set up Google Cloud SDK
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          service_account_key: ${{ secrets.GCLOUD_SERVICE_KEY }}
           project_id: ${{ env.PROJECT_ID }}
 
-      # Step 3: Configure Docker to authenticate to Google Artifact Registry.
-      - name: Configure Docker for Google Artifact Registry
+      # Authenticate Docker with Artifact Registry
+      - name: Configure Docker Authentication
         run: |
-          # Authenticate Docker to push to Artifact Registry.
           gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
 
-      # Step 4: Build the Docker image.
+      # Build the Docker image
       - name: Build Docker Image
         run: |
           docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
-      # Step 5: Push the Docker image to Artifact Registry.
+      # Push the Docker image to Google Artifact Registry
       - name: Push Docker Image
         run: |
           docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
