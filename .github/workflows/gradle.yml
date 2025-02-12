@@ -53,7 +53,7 @@ jobs:
           IMAGE="${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE_NAME }}:${IMAGE_TAG}"
           
           # Deploy the new revision with the updated image.
-          gcloud run deploy my-cloud-run-service \
+          gcloud run deploy retro-backend-service \
             --image "$IMAGE" \
             --region ${{ env.REGION }} \
             --platform managed \
