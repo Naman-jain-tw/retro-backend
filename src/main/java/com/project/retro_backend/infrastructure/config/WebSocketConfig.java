@@ -20,7 +20,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(final StompEndpointRegistry registry) {
         registry.addEndpoint("/websocket")
-                .setAllowedOrigins("https://retro-backend-service-887081604066.asia-south1.run.app", "http://localhost:8081")
+                .setAllowedOrigins("https://retro-backend-service-887081604066.asia-south1.run.app", "http://localhost:8081", "http://localhost:5173")
                 .setHandshakeHandler(new UserHandshakeHandler())
                 .withSockJS();
     }
