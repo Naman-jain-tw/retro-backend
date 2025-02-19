@@ -151,4 +151,8 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
     public Set<String> getActiveBoardUsers(UUID boardId) {
         return activeBoardUsers.getOrDefault(boardId, Collections.emptySet());
     }
+
+    public boolean boardExists(UUID boardId) {
+        return boardRepository.findByPublicId(boardId) != null;
+    }
 }

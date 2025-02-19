@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "cards")
@@ -14,20 +13,17 @@ public class CardJpaEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
-    private UUID publicId;
-
     @Column(nullable = false)
     private String text;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "board_id", nullable = false)
     private BoardJpaEntity board;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private UserJpaEntity user;
 

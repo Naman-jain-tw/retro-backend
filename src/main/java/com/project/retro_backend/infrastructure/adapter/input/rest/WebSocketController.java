@@ -1,7 +1,11 @@
 package com.project.retro_backend.infrastructure.adapter.input.rest;
 
+import com.project.retro_backend.application.service.BoardService;
+import com.project.retro_backend.domain.exception.BoardNotFoundException;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.AddCardResponse;
 import com.project.retro_backend.infrastructure.adapter.input.websocket.CardContent;
+
+import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.annotation.SendToUser;
@@ -9,13 +13,19 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.util.HtmlUtils;
 
 import java.security.Principal;
+import java.util.UUID;
 
 @Controller
 public class WebSocketController {
-    @MessageMapping("/message")
-    @SendTo("/topic/messages")
-    public AddCardResponse getMessage(final CardContent content) throws InterruptedException {
-        Thread.sleep(1000);
+
+    private BoardService boardService;
+
+    @MessageMapping("/board/{boardId}/message")
+    @SendTo("/topic/board/{boardId}/messages")
+    public AddCardResponse getMessage(final CardContent content, @DestinationVariable String boardId) throws InterruptedException {
+        if (!boardService.boardExists(UUID.fromString(boardId))) {
+            throw new BoardNotFoundException("Board not found");
+        }
         return new AddCardResponse(HtmlUtils.htmlEscape(content.getCardContent()));
     }
 
@@ -23,7 +33,6 @@ public class WebSocketController {
     @SendToUser("/topic/private-messages")
     public AddCardResponse getPrivateMessage(final CardContent content, final Principal principal)
             throws InterruptedException {
-        Thread.sleep(1000);
         return new AddCardResponse(HtmlUtils
                 .htmlEscape("Sending private message to: " + principal.getName() + " " + content.getCardContent()));
     }
