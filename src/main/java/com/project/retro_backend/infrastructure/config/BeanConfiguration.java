@@ -3,6 +3,8 @@ package com.project.retro_backend.infrastructure.config;
 import com.project.retro_backend.application.port.output.*;
 import com.project.retro_backend.application.service.BoardService;
 import com.project.retro_backend.application.service.CardService;
+import com.project.retro_backend.application.service.TimerService;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,4 +29,11 @@ public class BeanConfiguration {
             SimpMessagingTemplate simpMessagingTemplate) {
         return new CardService(cardRepository, boardRepository, boardUserRepository, simpMessagingTemplate);
     }
-} 
+
+    @Bean
+    public TimerService timerService(
+            BoardService boardService,
+            SimpMessagingTemplate simpMessagingTemplate) {
+        return new TimerService(boardService, simpMessagingTemplate);
+    }
+}

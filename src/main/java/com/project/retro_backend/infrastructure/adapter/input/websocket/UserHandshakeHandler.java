@@ -2,8 +2,6 @@ package com.project.retro_backend.infrastructure.adapter.input.websocket;
 
 import com.sun.security.auth.UserPrincipal;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.support.DefaultHandshakeHandler;
