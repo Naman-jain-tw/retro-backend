@@ -19,6 +19,9 @@ public class CardJpaEntity {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(nullable = false)
+    private String columnType;
+
     @ManyToOne
     @JoinColumn(name = "board_id", nullable = false)
     private BoardJpaEntity board;

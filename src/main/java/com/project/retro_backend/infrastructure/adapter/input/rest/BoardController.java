@@ -2,6 +2,7 @@ package com.project.retro_backend.infrastructure.adapter.input.rest;
 
 import com.project.retro_backend.application.port.input.CreateBoardUseCase;
 import com.project.retro_backend.application.port.input.CreateCardUseCase;
+import com.project.retro_backend.application.port.input.GetBoardDetailsUseCase;
 import com.project.retro_backend.application.port.input.JoinBoardUseCase;
 import com.project.retro_backend.domain.exception.BoardNotFoundException;
 import com.project.retro_backend.domain.exception.UserNotFoundException;
@@ -9,6 +10,7 @@ import com.project.retro_backend.domain.model.Board;
 import com.project.retro_backend.domain.model.BoardUser;
 import com.project.retro_backend.domain.model.Card;
 import com.project.retro_backend.domain.model.UserToken;
+import com.project.retro_backend.infrastructure.adapter.input.rest.dto.BoardDetailsResponse;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.CreateBoardResponse;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.JoinBoardResponse;
 import com.project.retro_backend.infrastructure.adapter.input.websocket.CardContent;
@@ -33,6 +35,7 @@ public class BoardController {
     private final CreateBoardUseCase createBoardUseCase;
     private final JoinBoardUseCase joinBoardUseCase;
     private final CreateCardUseCase createCardUseCase;
+    private final GetBoardDetailsUseCase getBoardDetailsUseCase; 
 
     @PostMapping
     @Operation(summary = "Create a new board",
@@ -80,13 +83,25 @@ public class BoardController {
     public ResponseEntity<HttpStatus> addCard(
             @Parameter(description = "ID of the board to add a card to") @PathVariable("boardId") UUID boardId,
             @Parameter(description = "Name of the user adding the card") @RequestParam("userName") String userName,
+            @Parameter(description = "Column name") @RequestParam("column") String columnType,
             @Parameter(description = "Card content or message") @RequestBody final CardContent cardContent) {
         try {
-            Card card = createCardUseCase.createCard(boardId, userName, cardContent.getCardContent());
+            Card card = createCardUseCase.createCard(boardId, userName, columnType, cardContent.getCardContent());
             return ResponseEntity.ok().build(); // Return the created card in response
         } catch (BoardNotFoundException | UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Return 404 if board or user is not found
         }
+    }
+
+    @GetMapping("/{boardId}/details")
+    @Operation(summary = "Get board details",
+            description = "Fetches all details related to a board including users and cards")
+    @ApiResponse(responseCode = "200", description = "Successfully fetched board details")
+    @ApiResponse(responseCode = "404", description = "Board not found")
+    public ResponseEntity<BoardDetailsResponse> getBoardDetails(
+            @Parameter(description = "ID of the board") @PathVariable UUID boardId) {
+        BoardDetailsResponse response = getBoardDetailsUseCase.getBoardDetails(boardId);
+        return ResponseEntity.ok(response);
     }
 
 } 

@@ -16,6 +16,7 @@ public class CardMapper {
         entity.setId(domain.getId());
         entity.setText(domain.getText());
         entity.setCreatedAt(domain.getCreatedAt());
+        entity.setColumnType(domain.getColumnType());
         entity.setUser(userMapper.toJpaEntity(domain.getUser()));
         entity.setBoard(boardMapper.toJpaEntity(domain.getBoard()));
         return entity;
@@ -26,6 +27,7 @@ public class CardMapper {
         domain.setId(entity.getId());
         domain.setText(entity.getText());
         domain.setCreatedAt(entity.getCreatedAt());
+        domain.setColumnType(entity.getColumnType());
         domain.setUser(userMapper.toDomainEntity(entity.getUser()));
         domain.setBoard(boardMapper.toDomainEntity(entity.getBoard()));
         return domain;

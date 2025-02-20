@@ -1,6 +1,7 @@
 package com.project.retro_backend.application.service;
 
 import com.project.retro_backend.application.port.input.CreateBoardUseCase;
+import com.project.retro_backend.application.port.input.GetBoardDetailsUseCase;
 import com.project.retro_backend.application.port.input.JoinBoardUseCase;
 import com.project.retro_backend.application.port.output.BoardRepository;
 import com.project.retro_backend.application.port.output.UserRepository;
@@ -13,6 +14,8 @@ import com.project.retro_backend.domain.model.UserRole;
 import com.project.retro_backend.domain.exception.BoardNotFoundException;
 import com.project.retro_backend.domain.model.BoardUserStatus;
 import com.project.retro_backend.domain.model.UserToken;
+import com.project.retro_backend.infrastructure.adapter.input.rest.dto.BoardDetailsResponse;
+import com.project.retro_backend.infrastructure.persistence.projection.BoardDetailsProjection;
 
 import lombok.RequiredArgsConstructor;
 
@@ -25,12 +28,15 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 @Primary
-public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
+public class BoardService implements CreateBoardUseCase, JoinBoardUseCase, GetBoardDetailsUseCase {
     private final BoardRepository boardRepository;
     private final UserRepository userRepository;
     private final BoardUserRepository boardUserRepository;
@@ -146,6 +152,53 @@ public class BoardService implements CreateBoardUseCase, JoinBoardUseCase {
             users.remove(userName);
             return users.isEmpty() ? null : users;
         });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BoardDetailsResponse getBoardDetails(UUID boardId) {
+        List<BoardDetailsProjection> projections = boardRepository.findBoardDetailsByBoardId(boardId);
+
+        if (projections.isEmpty()) {
+            throw new BoardNotFoundException("Board not found");
+        }
+
+        Map<UUID, BoardDetailsResponse> boardMap = new HashMap<>();
+
+        for (BoardDetailsProjection projection : projections) {
+            UUID boardUuid = toUUID(projection.getBoardId());
+
+            // Fetch or initialize the BoardDetailsResponse
+            BoardDetailsResponse boardDetails = boardMap.computeIfAbsent(boardUuid, id -> {
+                BoardDetailsResponse dto = new BoardDetailsResponse();
+                dto.setBoardId(id);
+                dto.setBoardName(projection.getBoardName());
+                dto.setCards(new ArrayList<>());
+                return dto;
+            });
+
+            // Create CardDetails
+            BoardDetailsResponse.CardDetails card = new BoardDetailsResponse.CardDetails();
+            card.setText(projection.getText());
+            card.setColumnType(projection.getColumnType());
+
+            // Create UserDetails
+            BoardDetailsResponse.CardDetails.UserDetails user = new BoardDetailsResponse.CardDetails.UserDetails();
+            user.setName(projection.getUserName());
+            user.setPublicId(toUUID(projection.getUserPublicId()));
+
+            card.setUser(user);
+
+            // Add card to board
+            boardDetails.getCards().add(card);
+        }
+
+        // Return the single board from the map
+        return boardMap.values().iterator().next();
+    }
+
+    public UUID toUUID(byte[] bytes) {
+        return bytes == null ? null : UUID.nameUUIDFromBytes(bytes);
     }
 
     public Set<String> getActiveBoardUsers(UUID boardId) {

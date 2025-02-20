@@ -15,4 +15,5 @@ public class Card {
     private LocalDateTime createdAt;
     private Board board;
     private User user;
+    public String columnType;
 }

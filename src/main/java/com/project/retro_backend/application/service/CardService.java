@@ -30,7 +30,7 @@ public class CardService implements CreateCardUseCase {
     private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
-    public Card createCard(UUID boardId, String userName, String message) {
+    public Card createCard(UUID boardId, String userName, String column, String message) {
         // Check if board exists
         Board board = boardRepository.findByPublicId(boardId)
                 .orElseThrow(() -> new BoardNotFoundException("Board not found"));
@@ -45,15 +45,16 @@ public class CardService implements CreateCardUseCase {
         card.setBoard(board);
         card.setUser(boardUser.getUser());
         card.setCreatedAt(LocalDateTime.now());
+        card.setColumnType(column);
 
         cardRepository.save(card);
-        notifyFrontend(message);
+        notifyFrontend(message, column, boardId);
 
         return card;
     }
 
-    public void notifyFrontend(final String message) {
-        CardContent content = new CardContent(message);
-        messagingTemplate.convertAndSend("/topic/messages", content);
+    public void notifyFrontend(final String message, final String columnType, UUID boardId) {
+        CardContent content = new CardContent(message, columnType);
+        messagingTemplate.convertAndSend("/topic/board" + boardId + "/messages", content);
     }
 }
