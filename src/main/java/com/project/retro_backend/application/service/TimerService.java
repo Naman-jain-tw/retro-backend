@@ -2,9 +2,11 @@ package com.project.retro_backend.application.service;
 
 import com.project.retro_backend.application.port.input.TimerUseCases;
 import com.project.retro_backend.domain.exception.BoardNotFoundException;
+import com.project.retro_backend.domain.model.TimerState;
 import com.project.retro_backend.infrastructure.adapter.input.rest.dto.TimerMessage;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -14,64 +16,82 @@ import java.util.concurrent.*;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TimerService implements TimerUseCases {
     private final BoardService boardService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final Map<UUID, ScheduledFuture<?>> activeTimers = new ConcurrentHashMap<>();
-    private final Map<UUID, Integer> remainingTimes = new ConcurrentHashMap<>();
+    private final Map<UUID, TimerState> timerStates = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
     public void startTimer(UUID boardId, int durationMinutes) {
+        log.info("Starting timer for board: {} with duration: {} minutes", boardId, durationMinutes);
+        
         if (!boardService.boardExists(boardId)) {
             throw new BoardNotFoundException("Board not found");
         }
 
-        // Validate duration
         if (durationMinutes < 2 || durationMinutes > 60) {
             throw new IllegalArgumentException("Duration must be between 2 and 60 minutes");
         }
 
-        // Cancel existing timer if any
         cancelTimer(boardId);
 
-        // Convert minutes to seconds
         int durationSeconds = durationMinutes * 60;
-        remainingTimes.put(boardId, durationSeconds);
-
-        // Schedule timer updates
-        ScheduledFuture<?> timerFuture = scheduler.scheduleAtFixedRate(() -> {
-            int remaining = remainingTimes.get(boardId);
-            if (remaining <= 0) {
+        ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
+            TimerState state = timerStates.get(boardId);
+            if (state == null || state.getRemainingSeconds() <= 0) {
                 handleTimerCompletion(boardId);
                 return;
             }
 
-            remaining--;
-            remainingTimes.put(boardId, remaining);
-            broadcastRemainingTime(boardId, remaining);
+            state.setRemainingSeconds(state.getRemainingSeconds() - 1);
+            broadcastRemainingTime(boardId, state.getRemainingSeconds());
         }, 0, 1, TimeUnit.SECONDS);
 
-        activeTimers.put(boardId, timerFuture);
+        timerStates.put(boardId, new TimerState(durationSeconds, future));
+        log.info("Timer started successfully for board: {}", boardId);
+    }
+
+    public TimerMessage getTimerState(UUID boardId) {
+        log.info("Getting timer state for board: {}", boardId);
+        
+        if (!boardService.boardExists(boardId)) {
+            throw new BoardNotFoundException("Board not found");
+        }
+
+        TimerState state = timerStates.get(boardId);
+        if (state == null) {
+            return new TimerMessage("NO_TIMER", 0, "00:00");
+        }
+
+        return new TimerMessage(
+            state.getStatus(),
+            state.getRemainingSeconds(),
+            formatTime(state.getRemainingSeconds())
+        );
     }
 
     public void stopTimer(UUID boardId) {
-        ScheduledFuture<?> timer = activeTimers.get(boardId);
-        if (timer != null) {
-            timer.cancel(false);
-            broadcastRemainingTime(boardId, remainingTimes.get(boardId));
+        log.info("Stopping timer for board: {}", boardId);
+        TimerState state = timerStates.get(boardId);
+        if (state != null) {
+            state.getFuture().cancel(false);
+            state.setStatus("STOPPED");
+            broadcastRemainingTime(boardId, state.getRemainingSeconds());
         }
     }
 
     public void cancelTimer(UUID boardId) {
-        ScheduledFuture<?> timer = activeTimers.remove(boardId);
-        if (timer != null) {
-            timer.cancel(true);
-            remainingTimes.remove(boardId);
+        log.info("Canceling timer for board: {}", boardId);
+        TimerState state = timerStates.remove(boardId);
+        if (state != null) {
+            state.getFuture().cancel(true);
             broadcastTimerCancelled(boardId);
         }
     }
 
     private void handleTimerCompletion(UUID boardId) {
+        log.info("Timer completed for board: {}", boardId);
         cancelTimer(boardId);
         broadcastTimerComplete(boardId);
     }
@@ -100,22 +120,10 @@ public class TimerService implements TimerUseCases {
         return String.format("%02d:%02d", minutes, seconds);
     }
 
-    // Clean up method to be called on application shutdown
     public void shutdown() {
+        log.info("Shutting down timer service");
         scheduler.shutdown();
-        activeTimers.forEach((boardId, timer) -> timer.cancel(true));
-        activeTimers.clear();
-        remainingTimes.clear();
-    }
-
-    public TimerMessage getTimerState(UUID boardId) {
-        Integer remainingSeconds = remainingTimes.get(boardId);
-        if (remainingSeconds == null) {
-            return new TimerMessage("NO_TIMER", 0, "00:00");
-        }
-        return new TimerMessage(
-                "TIMER_UPDATE",
-                remainingSeconds,
-                formatTime(remainingSeconds));
+        timerStates.forEach((boardId, state) -> state.getFuture().cancel(true));
+        timerStates.clear();
     }
 }
