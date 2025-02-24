@@ -14,12 +14,19 @@ import java.util.UUID;
 public interface BoardJpaRepository extends JpaRepository<BoardJpaEntity, Long> {
     Optional<BoardJpaEntity> findByPublicId(UUID publicId);
 
-    @Query(value = "SELECT b.public_id AS boardId, b.name AS boardName, c.text AS text, " +
-            "c.column_type AS columnType, u.name AS userName, u.public_id AS userPublicId " +
-            "FROM boards b " +
-            "JOIN cards c ON c.board_id = b.id " +
-            "JOIN users u ON u.id = c.user_id " +
-            "WHERE b.public_id = :boardId", nativeQuery = true)
+    @Query(value = """
+            SELECT
+                b.public_id AS boardId,
+                b.name AS boardName,
+                c.text AS text,
+                c.column_type AS columnType,
+                u.name AS userName,
+                u.public_id AS userPublicId
+            FROM boards b
+            LEFT JOIN cards c ON c.board_id = b.id
+            LEFT JOIN users u ON u.id = c.user_id
+            WHERE b.public_id = :boardId
+            """, nativeQuery = true)
     List<BoardDetailsProjection> findBoardDetailsByBoardId(@Param("boardId") UUID boardId);
 
 }
