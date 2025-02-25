@@ -55,6 +55,6 @@ public class CardService implements CreateCardUseCase {
 
     public void notifyFrontend(final String message, final String columnType, UUID boardId) {
         CardContent content = new CardContent(message, columnType);
-        messagingTemplate.convertAndSend("/topic/board" + boardId + "/messages", content);
+        messagingTemplate.convertAndSend("/topic/board/" + boardId + "/messages", content);
     }
 }
